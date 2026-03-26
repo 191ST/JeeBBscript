@@ -1,6 +1,3 @@
--- Blade Ball Auto Parry Keyless
--- Full Script dengan Visual Lingkaran Merah
-
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 local Players = game:Players
 local LocalPlayer = Players.LocalPlayer
