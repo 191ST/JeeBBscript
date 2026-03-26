@@ -1,90 +1,53 @@
--- Blade Ball Auto Parry + Visual Circle MERAH
--- 100% WORK
+-- Blade Ball Auto Parry for Xeno Executor
+-- NO VISUAL, pure auto parry
 
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-local plr = game.Players.LocalPlayer
-local cam = workspace.CurrentCamera
-local run = game:GetService("RunService")
-local vim = game:GetService("VirtualInputManager")
+_G.autoParry = true
+_G.parryKey = "F"
 
--- Drawing Circle
-local circle = Drawing.new("Circle")
-circle.Radius = 60
-circle.Thickness = 2
-circle.Filled = false
-circle.Color = Color3.fromRGB(255, 0, 0)
-circle.Visible = false
-circle.Transparency = 0.5
-circle.NumSides = 64
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Variables
-local autoParry = false
-local parryKey = Enum.KeyCode.F
-
--- Find Ball
-local function getBall()
-    for i,v in pairs(workspace:GetDescendants()) do
-        if v.Name == "Ball" and v:IsA("BasePart") then
-            return v
-        end
+-- Cari remote parry (biar lebih akurat)
+local parryRemote
+for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+    if v:IsA("RemoteEvent") and (v.Name:lower():find("parry") or v.Name:lower():find("block")) then
+        parryRemote = v
+        break
     end
-    return nil
 end
 
--- Auto Parry
+-- Auto parry function
 local function doParry()
-    vim:SendKeyEvent(true, parryKey, false, game)
-    task.wait(0.05)
-    vim:SendKeyEvent(false, parryKey, false, game)
+    if parryRemote then
+        parryRemote:FireServer()
+    else
+        -- Fallback ke virtual key
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[_G.parryKey], false, game)
+        task.wait(0.05)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode[_G.parryKey], false, game)
+    end
 end
 
--- Update Circle
-run.RenderStepped:Connect(function()
-    local ball = getBall()
-    if ball and autoParry then
-        local pos, onScreen = cam:WorldToViewportPoint(ball.Position)
-        if onScreen then
-            circle.Position = Vector2.new(pos.X, pos.Y)
-            circle.Visible = true
-            
-            local dist = (ball.Position - plr.Character.HumanoidRootPart.Position).Magnitude
-            if dist < 35 then
-                doParry()
-                circle.Color = Color3.fromRGB(255, 50, 50)
-                circle.Thickness = 3
-            else
-                circle.Color = Color3.fromRGB(255, 0, 0)
-                circle.Thickness = 2
+-- Main loop
+RunService.Heartbeat:Connect(function()
+    if not _G.autoParry then return end
+    if not LocalPlayer.Character then return end
+    
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and (v.Name == "Ball" or v.Name:find("Ball")) then
+            local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and v.Position then
+                local dist = (v.Position - hrp.Position).Magnitude
+                if dist < 35 then
+                    doParry()
+                end
             end
-        else
-            circle.Visible = false
         end
-    else
-        circle.Visible = false
     end
 end)
 
--- UI
-local win = OrionLib:MakeWindow({Name = "Blade Ball", HidePremium = true})
-local tab = win:MakeTab({Name = "Auto Parry"})
-
-tab:AddToggle({
-    Name = "Auto Parry + Visual Circle Merah",
-    Default = false,
-    Callback = function(val)
-        autoParry = val
-        if not val then circle.Visible = false end
-    end
-})
-
-tab:AddSlider({
-    Name = "Circle Radius",
-    Min = 30,
-    Max = 120,
-    Default = 60,
-    Callback = function(val)
-        circle.Radius = val
-    end
-})
-
-OrionLib:Init()
+print("Xeno Auto Parry ACTIVE - Tekan F otomatis")
+print("Matikan dengan: _G.autoParry = false")
