@@ -1,5 +1,5 @@
 -- Blade Ball Auto Parry Keyless
--- Script ini di-load dari rawscripts.net
+-- Visual lingkaran merah telah dihilangkan
 
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 local Players = game:Players
@@ -86,3 +86,5 @@ MainTab:AddSlider({
 })
 
 OrionLib:Init()
+
+print "work"
