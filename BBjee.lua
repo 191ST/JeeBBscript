@@ -1,66 +1,59 @@
+-- Blade Ball Auto Parry + Visual Circle MERAH
+-- 100% WORK
+
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-local Players = game:Players
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
+local plr = game.Players.LocalPlayer
+local cam = workspace.CurrentCamera
+local run = game:GetService("RunService")
+local vim = game:GetService("VirtualInputManager")
+
+-- Drawing Circle
+local circle = Drawing.new("Circle")
+circle.Radius = 60
+circle.Thickness = 2
+circle.Filled = false
+circle.Color = Color3.fromRGB(255, 0, 0)
+circle.Visible = false
+circle.Transparency = 0.5
+circle.NumSides = 64
 
 -- Variables
 local autoParry = false
 local parryKey = Enum.KeyCode.F
-local parryDelay = 0.1
-local prediction = 0.05
-local circleVisible = true
 
--- Drawing objects for visual circle
-local circle = Drawing.new("Circle")
-circle.Thickness = 2
-circle.NumSides = 64
-circle.Radius = 50
-circle.Filled = false
-circle.Color = Color3.fromRGB(255, 0, 0)
-circle.Visible = false
-circle.Transparency = 0.7
-circle.ZIndex = 10
-
--- Functions
-local function parry()
-    if autoParry then
-        task.wait(parryDelay)
-        VirtualInputManager:SendKeyEvent(true, parryKey, false, game)
-        task.wait()
-        VirtualInputManager:SendKeyEvent(false, parryKey, false, game)
-    end
-end
-
-local function findBall()
-    local ball = nil
-    for _, v in pairs(workspace:GetDescendants()) do
+-- Find Ball
+local function getBall()
+    for i,v in pairs(workspace:GetDescendants()) do
         if v.Name == "Ball" and v:IsA("BasePart") then
-            ball = v
-            break
+            return v
         end
     end
-    return ball
+    return nil
 end
 
-local function updateVisualCircle(ball)
-    if not circleVisible then
-        circle.Visible = false
-        return
-    end
-    
-    if ball and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local vector, onScreen = camera:WorldToViewportPoint(ball.Position)
+-- Auto Parry
+local function doParry()
+    vim:SendKeyEvent(true, parryKey, false, game)
+    task.wait(0.05)
+    vim:SendKeyEvent(false, parryKey, false, game)
+end
+
+-- Update Circle
+run.RenderStepped:Connect(function()
+    local ball = getBall()
+    if ball and autoParry then
+        local pos, onScreen = cam:WorldToViewportPoint(ball.Position)
         if onScreen then
-            circle.Position = Vector2.new(vector.X, vector.Y)
+            circle.Position = Vector2.new(pos.X, pos.Y)
             circle.Visible = true
-            local distance = (ball.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-            if distance < 30 then
-                circle.Color = Color3.fromRGB(255, 0, 0)
+            
+            local dist = (ball.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+            if dist < 35 then
+                doParry()
+                circle.Color = Color3.fromRGB(255, 50, 50)
                 circle.Thickness = 3
             else
-                circle.Color = Color3.fromRGB(255, 100, 0)
+                circle.Color = Color3.fromRGB(255, 0, 0)
                 circle.Thickness = 2
             end
         else
@@ -69,83 +62,28 @@ local function updateVisualCircle(ball)
     else
         circle.Visible = false
     end
-end
-
-local function checkDistanceToBall()
-    local ball = findBall()
-    if ball and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local distance = (ball.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-        if distance < 30 then
-            parry()
-        end
-    end
-    updateVisualCircle(ball)
-end
-
--- Get camera
-local camera = workspace.CurrentCamera
-
--- Auto Parry Loop
-RunService.RenderStepped:Connect(function()
-    if autoParry then
-        checkDistanceToBall()
-    end
 end)
 
 -- UI
-local Window = OrionLib:MakeWindow({Name = "Blade Ball Auto Parry", HidePremium = false, SaveConfig = true, ConfigFolder = "BladeBall"})
+local win = OrionLib:MakeWindow({Name = "Blade Ball", HidePremium = true})
+local tab = win:MakeTab({Name = "Auto Parry"})
 
-local MainTab = Window:MakeTab({Name = "Main", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-
-MainTab:AddToggle({
-    Name = "Auto Parry",
+tab:AddToggle({
+    Name = "Auto Parry + Visual Circle Merah",
     Default = false,
-    Callback = function(value)
-        autoParry = value
-        if not value then
-            circle.Visible = false
-        end
+    Callback = function(val)
+        autoParry = val
+        if not val then circle.Visible = false end
     end
 })
 
-MainTab:AddToggle({
-    Name = "Show Visual Circle (Merah)",
-    Default = true,
-    Callback = function(value)
-        circleVisible = value
-        if not value then
-            circle.Visible = false
-        end
-    end
-})
-
-MainTab:AddSlider({
-    Name = "Parry Delay (ms)",
-    Min = 0,
-    Max = 500,
-    Default = 100,
-    Callback = function(value)
-        parryDelay = value / 1000
-    end
-})
-
-MainTab:AddSlider({
-    Name = "Prediction",
-    Min = 0,
-    Max = 0.2,
-    Default = 0.05,
-    Callback = function(value)
-        prediction = value
-    end
-})
-
-MainTab:AddSlider({
+tab:AddSlider({
     Name = "Circle Radius",
-    Min = 20,
-    Max = 150,
-    Default = 50,
-    Callback = function(value)
-        circle.Radius = value
+    Min = 30,
+    Max = 120,
+    Default = 60,
+    Callback = function(val)
+        circle.Radius = val
     end
 })
 
