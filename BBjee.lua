@@ -1,5 +1,5 @@
 -- Blade Ball Auto Parry Keyless
--- Visual lingkaran merah telah dihilangkan
+-- Full Script dengan Visual Lingkaran Merah
 
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 local Players = game:Players
@@ -13,6 +13,18 @@ local autoParry = false
 local parryKey = Enum.KeyCode.F
 local parryDelay = 0.1
 local prediction = 0.05
+local circleVisible = true
+
+-- Drawing objects for visual circle
+local circle = Drawing.new("Circle")
+circle.Thickness = 2
+circle.NumSides = 64
+circle.Radius = 50
+circle.Filled = false
+circle.Color = Color3.fromRGB(255, 0, 0)
+circle.Visible = false
+circle.Transparency = 0.7
+circle.ZIndex = 10
 
 -- Functions
 local function parry()
@@ -35,6 +47,33 @@ local function findBall()
     return ball
 end
 
+local function updateVisualCircle(ball)
+    if not circleVisible then
+        circle.Visible = false
+        return
+    end
+    
+    if ball and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local vector, onScreen = camera:WorldToViewportPoint(ball.Position)
+        if onScreen then
+            circle.Position = Vector2.new(vector.X, vector.Y)
+            circle.Visible = true
+            local distance = (ball.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if distance < 30 then
+                circle.Color = Color3.fromRGB(255, 0, 0)
+                circle.Thickness = 3
+            else
+                circle.Color = Color3.fromRGB(255, 100, 0)
+                circle.Thickness = 2
+            end
+        else
+            circle.Visible = false
+        end
+    else
+        circle.Visible = false
+    end
+end
+
 local function checkDistanceToBall()
     local ball = findBall()
     if ball and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -43,10 +82,14 @@ local function checkDistanceToBall()
             parry()
         end
     end
+    updateVisualCircle(ball)
 end
 
+-- Get camera
+local camera = workspace.CurrentCamera
+
 -- Auto Parry Loop
-RunService.Heartbeat:Connect(function()
+RunService.RenderStepped:Connect(function()
     if autoParry then
         checkDistanceToBall()
     end
@@ -62,6 +105,20 @@ MainTab:AddToggle({
     Default = false,
     Callback = function(value)
         autoParry = value
+        if not value then
+            circle.Visible = false
+        end
+    end
+})
+
+MainTab:AddToggle({
+    Name = "Show Visual Circle (Merah)",
+    Default = true,
+    Callback = function(value)
+        circleVisible = value
+        if not value then
+            circle.Visible = false
+        end
     end
 })
 
@@ -85,6 +142,14 @@ MainTab:AddSlider({
     end
 })
 
-OrionLib:Init()
+MainTab:AddSlider({
+    Name = "Circle Radius",
+    Min = 20,
+    Max = 150,
+    Default = 50,
+    Callback = function(value)
+        circle.Radius = value
+    end
+})
 
-print "work"
+OrionLib:Init()
