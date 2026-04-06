@@ -273,18 +273,17 @@ local LOCATIONS = {
 -- ========== SAFE ZONE COORDINATE ==========
 local SAFE_ZONE_CFRAME = CFrame.new(537.71, 4.59, -537.09) * CFrame.Angles(-1.20, -1.56, -1.20)
 
--- ========== TP FUNCTION (LANGSUNG PINDAH) ==========
-local function moveVehicle(vehicle, targetPos)
-    local anchor = vehicle.PrimaryPart or vehicle:FindFirstChildOfClass("VehicleSeat") or vehicle:FindFirstChildOfClass("BasePart")
+-- ========== TP FUNCTION (ANCHOR/UNANCHOR) ==========
+local function moveVehicle(vehicle, targetCFrame)
+    local anchor = vehicle.PrimaryPart
+        or vehicle:FindFirstChildOfClass("VehicleSeat")
+        or vehicle:FindFirstChildOfClass("BasePart")
     if not anchor then return end
-    
-    local spawnPos = targetPos + Vector3.new(0,0.5,0)
-    local newCF = CFrame.new(spawnPos, spawnPos + Vector3.new(0,0,1))
     
     for _,p in ipairs(vehicle:GetDescendants()) do
         if p:IsA("BasePart") then
             pcall(function()
-                p.AssemblyLinearVelocity = Vector3.zero
+                p.AssemblyLinearVelocity  = Vector3.zero
                 p.AssemblyAngularVelocity = Vector3.zero
                 p.Anchored = true
             end)
@@ -293,9 +292,9 @@ local function moveVehicle(vehicle, targetPos)
     task.wait(0.05)
     
     if vehicle.PrimaryPart then
-        vehicle:SetPrimaryPartCFrame(newCF)
+        vehicle:SetPrimaryPartCFrame(targetCFrame)
     else
-        anchor.CFrame = newCF
+        anchor.CFrame = targetCFrame
     end
     task.wait(0.05)
     
@@ -303,7 +302,7 @@ local function moveVehicle(vehicle, targetPos)
         if p:IsA("BasePart") then
             pcall(function()
                 p.Anchored = false
-                p.AssemblyLinearVelocity = Vector3.zero
+                p.AssemblyLinearVelocity  = Vector3.zero
                 p.AssemblyAngularVelocity = Vector3.zero
             end)
         end
@@ -319,12 +318,15 @@ local function stepTeleport(targetPos)
     if seatPart then
         local vehicle = seatPart:FindFirstAncestorOfClass("Model")
         if vehicle then
-            moveVehicle(vehicle, targetPos)
+            moveVehicle(vehicle, CFrame.new(targetPos))
         end
     else
         local hrp = character:FindFirstChild("HumanoidRootPart")
         if hrp then
+            hrp.Anchored = true
             hrp.CFrame = CFrame.new(targetPos)
+            task.wait(0.05)
+            hrp.Anchored = false
         end
     end
 end
@@ -453,8 +455,8 @@ local function checkHealthAndTeleport()
     if maxHealth > 0 then
         local currentPercent = (currentHealth / maxHealth) * 100
         local percentDropped = lastHealthPercent - currentPercent
-
-                -- Jika HP turun minimal 1% (atau lebih)
+        
+        -- Jika HP turun minimal 1% (atau lebih)
         if percentDropped >= 1 and not isInSafeZone then
             -- Simpan posisi original
             saveOriginalPosition()
@@ -512,6 +514,7 @@ local function stopHPMonitoring()
     isInSafeZone = false
     originalPosition = nil
 end
+
 
 -- Buat semua button TP
 local tpLayout = Instance.new("UIListLayout")
